@@ -103,7 +103,11 @@ const loadStreams = () => {
 };
 
 const createRoom = (stream) => {
-    ClientService.send('room.new', { stream, meta: meta.value });
+    const roomMeta = isSeries.value && selectedEpisode.value
+        ? { ...meta.value, id: selectedEpisode.value.id }
+        : meta.value;
+
+    ClientService.send('room.new', { stream, meta: roomMeta });
 };
 
 watch(installedAddonsState, () => loadStreams());
