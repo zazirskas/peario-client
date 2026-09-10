@@ -118,6 +118,11 @@ export default {
         },
         installedSubtitles() {
             this.fetchSubtitles();
+        },
+        videoUrl() {
+            this.list = [];
+            this.panelLang = null;
+            this.fetchSubtitles();
         }
     },
     methods: {

@@ -29,7 +29,12 @@
             "ready": "HAZIR",
             "autoSync": "Otomatik Eşitleme",
             "subtitle": "Alt yazı",
-            "share": "Artık bu bağlantıyı arkadaşlarınızla paylaşabilirsiniz:"
+            "share": "Artık bu bağlantıyı arkadaşlarınızla paylaşabilirsiniz:",
+            "nextEpisode": {
+                "title": "Sonraki Bölüm",
+                "play": "Şimdi Oynat",
+                "cancel": "İptal"
+            }
         },
         "settings": {
             "title": "Ayarlar",
@@ -66,6 +71,10 @@
         "cooldown": {
             "title": "Çok hızlı gidiyor!",
             "message": "Yeniden denemeden önce birkaç dakika bekleyin."
+        },
+        "owner": {
+            "title": "Bunu sadece oda sahibi yapabilir",
+            "message": "Bölümü değiştirmesi için oda sahibinden isteyin."
         }
     },
     "loading": {
@@ -78,6 +87,7 @@
         "clipboard": "Panonuza kopyalandı!",
         "hlsStream": "HLS akışına geçti",
         "sourceStream": "Source akışına geçti",
-        "userAddonSuccess": "{0} eklentisi başarıyla eklendi!"
+        "userAddonSuccess": "{0} eklentisi başarıyla eklendi!",
+        "noNextEpisodeStream": "Sonraki bölüm için akış bulunamadı"
     }
 }

@@ -29,7 +29,12 @@
             "ready": "READY",
             "autoSync": "Auto-Sync",
             "subtitle": "Subtitle",
-            "share": "You can now share this link with your friends:"
+            "share": "You can now share this link with your friends:",
+            "nextEpisode": {
+                "title": "Next Episode",
+                "play": "Play Now",
+                "cancel": "Cancel"
+            }
         },
         "settings": {
             "title": "Settings",
@@ -66,6 +71,10 @@
         "cooldown": {
             "title": "It's going too fast !",
             "message": "Wait a few moment before retrying."
+        },
+        "owner": {
+            "title": "Only the room owner can do that",
+            "message": "Ask the room owner to change the episode."
         }
     },
     "loading": {
@@ -78,6 +87,7 @@
         "clipboard": "Copied to your clipboard !",
         "hlsStream": "Switched to HLS stream",
         "sourceStream": "Switched to Source stream",
-        "userAddonSuccess": "Successfully added {0} addon !"
+        "userAddonSuccess": "Successfully added {0} addon !",
+        "noNextEpisodeStream": "No stream found for the next episode"
     }
 }

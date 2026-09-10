@@ -6,6 +6,7 @@ import info from "./info";
 import addons from "./addons";
 import client from './client';
 import settings from './settings';
+import watched from './watched';
 
 export default createStore({
     modules: {
@@ -14,6 +15,7 @@ export default createStore({
         info,
         addons,
         client,
-        settings
+        settings,
+        watched
     }
 });

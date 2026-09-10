@@ -1,4 +1,4 @@
 allowBuilds:
-  core-js: set this to true or false
-  node-sass: set this to true or false
-  yorkie: set this to true or false
+  core-js: false
+  node-sass: false
+  yorkie: false

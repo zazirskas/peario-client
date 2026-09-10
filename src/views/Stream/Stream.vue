@@ -40,7 +40,8 @@
                     <div class="number">{{ item.episode }}</div>
                 </template>
                 <template #right="{ item }">
-                    <div class="name">{{ item.name }}</div>
+                    <div class="name" :class="{ watched: isWatched(item.id) }">{{ item.name }}</div>
+                    <ion-icon name="checkmark-circle" class="watched-icon" v-if="isWatched(item.id)"></ion-icon>
                 </template>
             </List>
         </div>
@@ -86,6 +87,7 @@ const installedAddonsState = computed(() => store.state.addons.installed);
 
 const isSeries = computed(() => meta.value && meta.value.type === 'series');
 const episodes = computed(() => meta.value && meta.value.videos && meta.value.videos.filter((video) => video.season === selectedSeason.value).sort((a, b) => a.episode - b.episode));
+const isWatched = (id) => store.getters['watched/isWatched'](id);
 
 let loadStreamsDebouncer = null;
 const loadStreams = () => {
@@ -219,6 +221,18 @@ onMounted(async () => {
                 font-size: 15px;
                 user-select: none;
             }
+        }
+    }
+
+    .series {
+        .name.watched {
+            opacity: 0.5;
+        }
+
+        .watched-icon {
+            flex: none;
+            font-size: 18px;
+            color: $accent-color;
         }
     }
 

@@ -14,6 +14,11 @@
             </div>
         </div>
 
+        <div class="now-playing" v-if="!locked && options.nowPlaying">
+            <div class="title">{{ options.nowPlaying.title }}</div>
+            <div class="subtitle" v-if="options.nowPlaying.subtitle">{{ options.nowPlaying.subtitle }}</div>
+        </div>
+
         <Subtitle v-if="videoRef" :timecode="currentTime" :controlsShown="!controlsHidden"></Subtitle>
 
         <video ref="videoRef" :src="options.src" :poster="options.meta.background"
@@ -21,7 +26,8 @@
             @timeupdate="updateCurrentTime"
             @waiting="() => updateBuffering(true)"
             @loadedmetadata="() => updateBuffering(false)"
-            @canplay="() => updateBuffering(false)">
+            @canplay="() => updateBuffering(false)"
+            @ended="() => emit('ended')">
         </video>
 
         <div class="controls" v-if="!locked && videoRef">
@@ -71,11 +77,15 @@ const props = defineProps({
             logo: String,
             background: String,
         },
+        nowPlaying: {
+            title: String,
+            subtitle: String
+        },
         isOwner: Boolean
     }
 });
 
-const emit = defineEmits(['change']);
+const emit = defineEmits(['change', 'ended']);
 
 const locked = computed(() => store.state.player.locked);
 const paused = computed(() => store.state.player.paused);
@@ -90,6 +100,10 @@ const userSubtitle = ref(null);
 
 watch(volume, (value) => {
     videoRef.value.volume = value;
+});
+
+watch(() => props.options.src, () => {
+    if (videoRef.value) videoRef.value.load();
 });
 
 let hideTimeout = null;
@@ -155,9 +169,36 @@ $overlay-background-color: rgba(0, 0, 0, 0.5);
     &.controlsHidden {
         cursor: none;
 
-        .controls {
+        .controls, .now-playing {
             opacity: 0;
             visibility: hidden;
+        }
+    }
+
+    .now-playing {
+        position: absolute;
+        top: 0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 50%;
+        padding: 0 10px;
+        text-align: center;
+        pointer-events: none;
+        user-select: none;
+        opacity: 1;
+        transition: all 0.2s ease-in;
+        color: $text-color;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+
+        .title {
+            font-family: 'Montserrat-Bold';
+            font-size: 1.1em;
+        }
+
+        .subtitle {
+            font-family: 'Montserrat-Medium';
+            font-size: 0.9em;
+            opacity: 0.85;
         }
     }
 

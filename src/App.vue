@@ -60,6 +60,7 @@ onMounted(() => {
     store.dispatch('loadAddons');
     store.dispatch('client/start');
     store.dispatch('settings/load');
+    store.dispatch('watched/load');
 
     checkServerRunning();
     updateLocaleNavigator();

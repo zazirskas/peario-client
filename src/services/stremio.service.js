@@ -63,6 +63,26 @@ const StremioService = {
         } catch(_) {
             return [];
         }
+    },
+
+    getNextEpisode(videos, season, episode) {
+        const seasons = [...new Set(videos.map((video) => video.season))].sort((a, b) => {
+            if (a === 0) return 1;
+            if (b === 0) return -1;
+            return a - b;
+        });
+
+        const episodesOf = (s) => videos.filter((video) => video.season === s).sort((a, b) => a.episode - b.episode);
+
+        const currentSeasonEpisodes = episodesOf(season);
+        const currentIndex = currentSeasonEpisodes.findIndex((video) => video.episode === episode);
+        if (currentIndex !== -1 && currentIndex + 1 < currentSeasonEpisodes.length)
+            return currentSeasonEpisodes[currentIndex + 1];
+
+        const nextSeason = seasons[seasons.indexOf(season) + 1];
+        if (nextSeason === undefined) return null;
+
+        return episodesOf(nextSeason)[0] || null;
     }
 
 };

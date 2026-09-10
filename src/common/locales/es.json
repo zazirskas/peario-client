@@ -29,7 +29,12 @@
             "ready": "LISTO",
             "autoSync": "Auto-Syncro",
             "subtitle": "Subtítulo",
-            "share": "Ahora puedes compartir este enlace con tus amigos:"
+            "share": "Ahora puedes compartir este enlace con tus amigos:",
+            "nextEpisode": {
+                "title": "Próximo Episodio",
+                "play": "Reproducir Ahora",
+                "cancel": "Cancelar"
+            }
         },
         "settings": {
             "title": "Parámetros",
@@ -66,6 +71,10 @@
         "cooldown": {
             "title": "¡Va demasiado rápido!",
             "message": "Espere unos instantes antes de volver a intentarlo."
+        },
+        "owner": {
+            "title": "Solo el propietario de la sala puede hacer eso",
+            "message": "Pide al propietario de la sala que cambie el episodio."
         }
     },
     "loading": {
@@ -78,6 +87,7 @@
         "clipboard": "¡Copiado en tu portapapeles!",
         "hlsStream": "Cambió a HLS stream",
         "sourceStream": "Cambió a Source stream",
-        "userAddonSuccess": "¡Añadido con éxito el addon {0} !"
+        "userAddonSuccess": "¡Añadido con éxito el addon {0} !",
+        "noNextEpisodeStream": "No se encontró ningún stream para el próximo episodio"
     }
 }

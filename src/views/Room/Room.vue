@@ -16,7 +16,11 @@
             <Button clear icon="chatbubbles-outline" v-else @click="isChatOpen = true">Open Chat</Button>
         </div>
 
-        <Player v-if="playerOptions" :options="playerOptions" @change="syncPlayer()"></Player>
+        <Player v-if="playerOptions" :options="playerOptions" @change="syncPlayer()" @ended="onVideoEnded"></Player>
+
+        <NextEpisode v-if="nextEpisode" :episode="nextEpisode" :seconds="nextEpisodeSeconds"
+            :disabled="!canControlNextEpisode" @confirm="playNextEpisode" @cancel="cancelNextEpisode">
+        </NextEpisode>
 
         <transition name="fade">
             <Chat v-if="isChatOpen"></Chat>
@@ -25,31 +29,84 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watch } from 'vue';
 import router from '@/router';
 import store from '@/store';
 
 import Loading from "@/components/Loading.vue";
 import Button from "@/components/ui/Button.vue";
 import Player from "@/components/player/Player.vue";
+import NextEpisode from "@/components/player/NextEpisode.vue";
 import Chat from "@/components/Chat.vue";
 import UsersList from './UsersList/UsersList.vue';
 import StremioService from "@/services/stremio.service";
+import AddonService from "@/services/addon.service";
 import HlsService from "@/services/hls.service";
 import ClientService from "@/services/client.service";
 import { onBeforeRouteLeave } from 'vue-router';
 
-const initialized = ref(false); 
-const playerOptions = ref(null); 
-const isChatOpen = ref(false); 
+const NEXT_EPISODE_COUNTDOWN = 20;
+
+const { proxy } = getCurrentInstance();
+
+const resolvedStreamKey = ref(null);
+const playerOptions = ref(null);
+const isChatOpen = ref(false);
+
+const nextEpisode = ref(null);
+const nextEpisodeSeconds = ref(0);
+let nextEpisodeInterval = null;
 
 const clientState = computed(() => store.state.client);
 const clientRoomState = computed(() => store.state.client.room);
 const playerState = computed(() => store.state.player);
+const collectionState = computed(() => store.state.addons.collection);
+const installedAddonsState = computed(() => store.state.addons.installed);
 
 const roomOwner = computed(() => clientRoomState.value && clientState.value.room.owner ? clientState.value.room.owner : null);
 const usersList = computed(() => clientRoomState.value && clientState.value.room.users ? clientState.value.room.users : []);
 const isUserOwner = computed(() => clientState.value && clientState.value.user && clientState.value.user.id ? roomOwner.value === clientState.value.user.id : false);
+const installedStreamAddons = computed(() => collectionState.value && collectionState.value.streams.filter(addon => installedAddonsState.value.includes(addon.transportUrl)));
+const canControlNextEpisode = computed(() => isUserOwner.value || !playerState.value.autoSync);
+
+const streamKey = (stream) => stream.infoHash != null ? `${stream.infoHash}:${stream.fileIdx ?? ''}` : stream.url;
+
+let cachedSeriesId = null;
+let cachedSeriesVideos = null;
+
+const getSeriesVideos = async (seriesId) => {
+    if (cachedSeriesId !== seriesId) {
+        const series = await StremioService.getMetaSeries(seriesId);
+        cachedSeriesId = seriesId;
+        cachedSeriesVideos = (series && series.videos) || [];
+    }
+    return cachedSeriesVideos;
+};
+
+const updateNowPlaying = async (meta) => {
+    if (!meta) return;
+
+    if (meta.type !== 'series') {
+        playerOptions.value = { ...playerOptions.value, nowPlaying: { title: meta.name } };
+        return;
+    }
+
+    const [seriesId, season, episode] = meta.id.split(':');
+
+    try {
+        const videos = await getSeriesVideos(seriesId);
+        const video = videos.find((v) => v.id === meta.id);
+        playerOptions.value = {
+            ...playerOptions.value,
+            nowPlaying: {
+                title: meta.name,
+                subtitle: video ? `S${season}E${episode} · ${video.name}` : `S${season}E${episode}`
+            }
+        };
+    } catch(e) {
+        playerOptions.value = { ...playerOptions.value, nowPlaying: { title: meta.name } };
+    }
+};
 
 const syncRoom = async () => {
     const { stream, meta, player, owner } = clientState.value.room;
@@ -60,9 +117,10 @@ const syncRoom = async () => {
         isOwner: clientState.value.user.id === owner,
     };
 
-    if (!initialized.value) {
+    const key = streamKey(stream);
+    if (resolvedStreamKey.value !== key) {
         const isTorrentStream = stream.infoHash != null;
-    
+
         const videoUrl = isTorrentStream ? await StremioService.createTorrentStream(stream) : stream.url;
         playerOptions.value = {
             ...playerOptions.value,
@@ -78,7 +136,7 @@ const syncRoom = async () => {
             };
         }
 
-        initialized.value = true;
+        resolvedStreamKey.value = key;
     }
 
     if (playerState.value.autoSync && playerState.value.video && !playerState.value.locked) {
@@ -110,9 +168,72 @@ const onUpdateOwnership = (userId) => {
     ClientService.send('room.updateOwnership', { userId });
 };
 
+const cancelNextEpisode = () => {
+    clearInterval(nextEpisodeInterval);
+    nextEpisodeInterval = null;
+    nextEpisode.value = null;
+};
+
+const onVideoEnded = async () => {
+    const meta = playerOptions.value && playerOptions.value.meta;
+    if (!meta) return;
+
+    store.dispatch('watched/markWatched', meta.id);
+
+    if (meta.type !== 'series') return;
+
+    const [seriesId, season, episode] = meta.id.split(':');
+
+    try {
+        const videos = await getSeriesVideos(seriesId);
+        const next = StremioService.getNextEpisode(videos, parseInt(season), parseInt(episode));
+        if (!next) return;
+
+        nextEpisode.value = next;
+        nextEpisodeSeconds.value = NEXT_EPISODE_COUNTDOWN;
+
+        nextEpisodeInterval = setInterval(() => {
+            nextEpisodeSeconds.value -= 1;
+
+            if (nextEpisodeSeconds.value <= 0) {
+                nextEpisodeSeconds.value = 0;
+                clearInterval(nextEpisodeInterval);
+                nextEpisodeInterval = null;
+
+                if (canControlNextEpisode.value) playNextEpisode();
+            }
+        }, 1000);
+    } catch(e) {
+        console.error('Failed to fetch the next episode');
+    }
+};
+
+const playNextEpisode = async () => {
+    if (!nextEpisode.value || !canControlNextEpisode.value) return;
+
+    const episode = nextEpisode.value;
+    const meta = { ...playerOptions.value.meta, id: episode.id };
+
+    cancelNextEpisode();
+
+    const streams = await AddonService.getStreams(installedStreamAddons.value, meta.type, episode.id);
+    const stream = streams[0];
+    if (!stream) return proxy.$toast.error(proxy.$t('toasts.noNextEpisodeStream'));
+
+    ClientService.send('room.update', { meta, stream });
+};
+
 watch(clientRoomState, () => {
     syncRoom();
 });
+
+watch(resolvedStreamKey, () => {
+    cancelNextEpisode();
+});
+
+watch(() => playerOptions.value && playerOptions.value.meta && playerOptions.value.meta.id, () => {
+    updateNowPlaying(playerOptions.value && playerOptions.value.meta);
+}, { immediate: true });
 
 let syncPlayerInterval = null;
 
@@ -130,6 +251,8 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(syncPlayerInterval);
     syncPlayerInterval = null;
+    clearInterval(nextEpisodeInterval);
+    nextEpisodeInterval = null;
 });
 
 onBeforeRouteLeave(() => {
