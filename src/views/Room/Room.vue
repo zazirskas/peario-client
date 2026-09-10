@@ -64,19 +64,12 @@ const syncRoom = async () => {
         const isTorrentStream = stream.infoHash != null;
     
         const videoUrl = isTorrentStream ? await StremioService.createTorrentStream(stream) : stream.url;
+        const playlistUrl = await HlsService.createPlaylist(videoUrl);
         playerOptions.value = {
             ...playerOptions.value,
             src: videoUrl,
-            hls: null,
+            hls: playlistUrl,
         };
-
-        if (isTorrentStream) {
-            const playlistUrl = await HlsService.createPlaylist(videoUrl);
-            playerOptions.value = {
-                ...playerOptions.value,
-                hls: playlistUrl,
-            };
-        }
 
         initialized.value = true;
     }
